@@ -35,7 +35,7 @@ class VisionPoseEstimatePlugin : public plugin::PluginBase,
 	private plugin::TF2ListenerMixin<VisionPoseEstimatePlugin> {
 public:
 	VisionPoseEstimatePlugin() : PluginBase(),
-		sp_nh("~vision_pose"),
+		//sp_nh("~vision_pose"),
 		tf_rate(10.0)
 	{ }
 
