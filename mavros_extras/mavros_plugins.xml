@@ -17,6 +17,9 @@
 	<class name="vision_speed_estimate" type="mavros::extra_plugins::VisionSpeedEstimatePlugin" base_class_type="mavros::plugin::PluginBase">
 		<description>Send vision speed estimate to FCU.</description>
 	</class>
+	<class name="vision_position_delta" type="mavros::extra_plugins::VisionPositionDeltaPlugin" base_class_type="mavros::plugin::PluginBase">
+		<description>Send vision position delta messages to FCU.</description>
+	</class>
 	<class name="vibration" type="mavros::extra_plugins::VibrationPlugin" base_class_type="mavros::plugin::PluginBase">
 		<description>Publish VIBRATION message data from FCU.</description>
 	</class>
