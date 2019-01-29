@@ -82,7 +82,7 @@ private:
 		            int req_index = i * scale_factor + j;
 		            if (req_index < req->ranges.size()) {
 		                uint16_t dist_cm = req->ranges[req_index] * 1e2;
-		                obstacle.distances[i] = min(obstacle.distances[i], dist_cm);
+		                obstacle.distances[i] = std::min(obstacle.distances[i], dist_cm);
 		            }
 		        }
 	        }
