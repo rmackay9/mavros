@@ -68,7 +68,7 @@ private:
 		auto cm_ranges = Eigen::Map<const Eigen::VectorXf>(req->ranges.data(), n) * 1e2;
 		Eigen::Map<Eigen::Matrix<uint16_t, Eigen::Dynamic, 1> > map_distances(obstacle.distances.data(), n);
 
-		obstacle.time_usec = req->header.stamp.toNSec() / 1000;					//!< [milisecs]
+		obstacle.time_usec = req->header.stamp.toNSec() / 1000;					//!< [microsecs]
 		obstacle.sensor_type = utils::enum_value(MAV_DISTANCE_SENSOR::LASER);			//!< defaults is laser type (depth sensor, Lidar)
 		map_distances = cm_ranges.cast<uint16_t>();						//!< [centimeters]
 		std::fill(obstacle.distances.begin() + n, obstacle.distances.end(), UINT16_MAX);	//!< fill the rest of the array values as "Unknown"
