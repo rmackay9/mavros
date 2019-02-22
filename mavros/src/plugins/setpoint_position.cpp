@@ -22,6 +22,7 @@
 
 #include <mavros_msgs/SetMavFrame.h>
 #include <mavros_msgs/GlobalPositionTarget.h>
+#include <mavros_msgs/PositionTarget.h>
 
 #include <GeographicLib/Geocentric.hpp>
 //#include <GeographicLib/Geoid.hpp>
@@ -89,7 +90,8 @@ public:
 	Subscriptions get_subscriptions()
 	{
         return {
-            make_handler(&SetpointPositionPlugin::handle_set_position_target_global_int)
+            make_handler(&SetpointPositionPlugin::handle_set_position_target_global_int),
+            make_handler(&SetpointPositionPlugin::handle_set_position_target_local_ned)
         };
 	}
 
@@ -270,14 +272,12 @@ private:
     /**
      * @brief handle SET_POSITION_TARGET_GLOBAL_INT mavlink msg
      * handles and publishes position target received from FCU
-     * @param msg       Received Mavlink msg
-     * @param wpi       WaypointItem from msg
      */
     void handle_set_position_target_global_int(const mavlink::mavlink_message_t *msg, mavlink::common::msg::SET_POSITION_TARGET_GLOBAL_INT &position_target)
     {
         /* check if type_mask field ignores position*/
         if (position_target.type_mask & (mavros_msgs::GlobalPositionTarget::IGNORE_LATITUDE | mavros_msgs::GlobalPositionTarget::IGNORE_LONGITUDE) > 0) {
-            ROS_INFO_NAMED("setpoint", "SET_POSITION_TARGET_GLOBAL_INT ignores lat and lon");
+            ROS_INFO_NAMED("setpoint", "SET_POSITION_TARGET_GLOBAL_INT ignores lat and/or lon");
             return;
         }
 
@@ -290,9 +290,38 @@ private:
         const std::string mav_frame_str = utils::to_string(mav_frame);
         auto pose = boost::make_shared<geometry_msgs::PoseStamped>();
         pose->header = m_uas->synchronized_header(mav_frame_str, position_target.time_boot_ms);
-        pose->pose.position.x = position_target.lat_int;
-        pose->pose.position.y = position_target.lon_int;
+        pose->pose.position.x = position_target.lat_int  / 1e7;
+        pose->pose.position.y = position_target.lon_int  / 1e7;
         pose->pose.position.z = position_target.alt;
+
+        /* publish target */
+        setpointg_pub.publish(pose);
+    }
+
+    /**
+     * @brief handle SET_POSITION_TARGET_LOCAL_NED mavlink msg
+     * handles and publishes position target received from FCU or GCS
+     */
+    void handle_set_position_target_local_ned(const mavlink::mavlink_message_t *msg, mavlink::common::msg::SET_POSITION_TARGET_LOCAL_NED &position_target)
+    {
+        /* check if type_mask field ignores position*/
+        if (position_target.type_mask & (mavros_msgs::PositionTarget::IGNORE_PX | mavros_msgs::PositionTarget::IGNORE_PY) > 0) {
+            ROS_INFO_NAMED("setpoint", "SET_POSITION_TARGET_LOCAL_NED ignores x and/or y");
+            return;
+        }
+
+        /* debug */
+        ROS_INFO_NAMED("setpoint", "LocalPosTargetNED x:%4.2f y:%4.2f",
+            (double)position_target.x,
+            (double)position_target.y);
+
+        /* convert position target to PoseStamped */
+        const std::string mav_frame_str = utils::to_string(mav_frame);
+        auto pose = boost::make_shared<geometry_msgs::PoseStamped>();
+        pose->header = m_uas->synchronized_header(mav_frame_str, position_target.time_boot_ms);
+        pose->pose.position.x = position_target.x;
+        pose->pose.position.y = position_target.y;
+        pose->pose.position.z = position_target.z;
 
         /* publish target */
         setpointg_pub.publish(pose);
