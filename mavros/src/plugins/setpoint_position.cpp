@@ -277,12 +277,12 @@ private:
     {
         /* check if type_mask field ignores position*/
         if (position_target.type_mask & (mavros_msgs::GlobalPositionTarget::IGNORE_LATITUDE | mavros_msgs::GlobalPositionTarget::IGNORE_LONGITUDE) > 0) {
-            ROS_INFO_NAMED("setpoint", "SET_POSITION_TARGET_GLOBAL_INT ignores lat and/or lon");
+            ROS_WARN_NAMED("setpoint", "SET_POSITION_TARGET_GLOBAL_INT ignores lat and/or lon");
             return;
         }
 
         /* debug */
-        ROS_INFO_NAMED("setpoint", "GlobalPosTarget lat:%ld lon:%ld",
+        ROS_INFO_NAMED("setpoint", "SetPositionTargetGlobal lat:%ld lon:%ld",
             (long)position_target.lat_int,
             (long)position_target.lon_int);
 
@@ -306,12 +306,12 @@ private:
     {
         /* check if type_mask field ignores position*/
         if (position_target.type_mask & (mavros_msgs::PositionTarget::IGNORE_PX | mavros_msgs::PositionTarget::IGNORE_PY) > 0) {
-            ROS_INFO_NAMED("setpoint", "SET_POSITION_TARGET_LOCAL_NED ignores x and/or y");
+            ROS_WARN_NAMED("setpoint", "SET_POSITION_TARGET_LOCAL_NED ignores x and/or y");
             return;
         }
 
         /* debug */
-        ROS_INFO_NAMED("setpoint", "LocalPosTargetNED x:%4.2f y:%4.2f",
+        ROS_INFO_NAMED("setpoint", "SetPositionTargetLocal x:%4.2f y:%4.2f",
             (double)position_target.x,
             (double)position_target.y);
 
