@@ -45,7 +45,8 @@ public:
 		sp_nh("~setpoint_position"),
 		spg_nh("~"),
 		tf_rate(50.0),
-		tf_listen(false)
+		tf_listen(false),
+		is_map_init(false)
 	{ }
 
 	void initialize(UAS &uas_)
@@ -72,6 +73,9 @@ public:
 			gps_sub = spg_nh.subscribe("global_position/global", 10, &SetpointPositionPlugin::gps_cb, this);
 			// Subscribe for current local ENU pose.
 			local_sub = spg_nh.subscribe("local_position/pose", 10, &SetpointPositionPlugin::local_cb, this);
+
+			// subscriber for global origin (aka map origin)
+	        gp_origin_sub = gp_nh.subscribe("global_position/gp_origin", 10, &SetpointPositionPlugin::gp_origin_cb, this);
 		}
 		mav_frame_srv = sp_nh.advertiseService("mav_frame", &SetpointPositionPlugin::set_mav_frame_cb, this);
 
@@ -105,6 +109,7 @@ private:
 	ros::Subscriber setpointg_sub;	//!< GPS setpoint
 	ros::Subscriber gps_sub;	//!< current GPS
 	ros::Subscriber local_sub;	//!< current local ENU
+	ros::Subscriber gp_origin_sub;  //!< global origin LLA
 	ros::ServiceServer mav_frame_srv;
 	ros::Publisher setpointg_pub;   //!< global position target from FCU
 
@@ -112,6 +117,7 @@ private:
 	//sensor_msgs::NavSatFix current_gps_msg;
 	Eigen::Vector3d current_gps;		//!< geodetic coordinates LLA
 	Eigen::Vector3d current_local_pos;	//!< Current local position in ENU
+	Eigen::Vector3d map_origin {};  //!< origin of map frame [lla]
 	uint32_t old_gps_stamp = 0;		//!< old time gps time stamp in [ms], to check if new gps msg is received
 
 	std::string tf_frame_id;
@@ -119,6 +125,7 @@ private:
 
 	bool tf_listen;
 	double tf_rate;
+	bool is_map_init;
 
 	MAV_FRAME mav_frame;
 
@@ -258,6 +265,15 @@ private:
 		current_local_pos = ftf::to_eigen(msg->pose.position);
 	}
 
+    /**
+     * global origin in LLA
+     */
+    void gp_origin_cb(const geographic_msgs::GeoPointStamped::ConstPtr &msg)
+    {
+        map_origin = {msg.latitude, msg.longitude, msg.altitude};
+        is_map_init = true;
+    }
+
 	bool set_mav_frame_cb(mavros_msgs::SetMavFrame::Request &req, mavros_msgs::SetMavFrame::Response &res)
 	{
 		mav_frame = static_cast<MAV_FRAME>(req.mav_frame);
@@ -286,13 +302,18 @@ private:
             (long)position_target.lat_int,
             (long)position_target.lon_int);
 
+        /* check origin has been set */
+        if (!is_map_init) {
+            ROS_WARN_NAMED("setpoint", "SetPositionTargetGlobal failed because no origin");
+        }
+
         /* convert position target to PoseStamped */
-        const std::string mav_frame_str = utils::to_string(mav_frame);
         auto pose = boost::make_shared<geometry_msgs::PoseStamped>();
-        pose->header = m_uas->synchronized_header(mav_frame_str, position_target.time_boot_ms);
-        pose->pose.position.x = position_target.lat_int  / 1e7;
-        pose->pose.position.y = position_target.lon_int  / 1e7;
-        pose->pose.position.z = position_target.alt;
+        pose->header = m_uas->synchronized_header("map", position_target.time_boot_ms);
+        pose->pose.position.x = map_origin.x - position_target.lat_int  / 1e7;
+        pose->pose.position.y = map_origin.y position_target.lon_int  / 1e7;
+        pose->pose.position.z = map_origin.z - position_target.alt;
+        pose->pose.orientation.w = 1;   // unit quaternion with no rotation
 
         /* publish target */
         setpointg_pub.publish(pose);
