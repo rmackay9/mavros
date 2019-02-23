@@ -19,6 +19,7 @@
 #include <eigen_conversions/eigen_msg.h>
 
 #include <geometry_msgs/PoseStamped.h>
+#include <geographic_msgs/GeoPointStamped.h>
 
 #include <mavros_msgs/SetMavFrame.h>
 #include <mavros_msgs/GlobalPositionTarget.h>
@@ -75,7 +76,7 @@ public:
 			local_sub = spg_nh.subscribe("local_position/pose", 10, &SetpointPositionPlugin::local_cb, this);
 
 			// subscriber for global origin (aka map origin)
-	        gp_origin_sub = gp_nh.subscribe("global_position/gp_origin", 10, &SetpointPositionPlugin::gp_origin_cb, this);
+	        gp_origin_sub = spg_nh.subscribe("global_position/gp_origin", 10, &SetpointPositionPlugin::gp_origin_cb, this);
 		}
 		mav_frame_srv = sp_nh.advertiseService("mav_frame", &SetpointPositionPlugin::set_mav_frame_cb, this);
 
@@ -270,7 +271,7 @@ private:
      */
     void gp_origin_cb(const geographic_msgs::GeoPointStamped::ConstPtr &msg)
     {
-        map_origin = {msg.latitude, msg.longitude, msg.altitude};
+        map_origin = {msg->position.latitude, msg->position.longitude, msg->position.altitude};
         is_map_init = true;
     }
 
@@ -310,9 +311,9 @@ private:
         /* convert position target to PoseStamped */
         auto pose = boost::make_shared<geometry_msgs::PoseStamped>();
         pose->header = m_uas->synchronized_header("map", position_target.time_boot_ms);
-        pose->pose.position.x = map_origin.x - position_target.lat_int  / 1e7;
-        pose->pose.position.y = map_origin.y position_target.lon_int  / 1e7;
-        pose->pose.position.z = map_origin.z - position_target.alt;
+        pose->pose.position.x = (position_target.lat_int / 1e7) - map_origin.x();
+        pose->pose.position.y = (position_target.lon_int / 1e7) - map_origin.y();
+        pose->pose.position.z = position_target.alt - map_origin.z();
         pose->pose.orientation.w = 1;   // unit quaternion with no rotation
 
         /* publish target */
