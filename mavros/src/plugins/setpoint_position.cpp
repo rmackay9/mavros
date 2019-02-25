@@ -328,6 +328,7 @@ private:
         /* convert ECEF target to ENU */
         const Eigen::Vector3d local_ecef = pos_target_ecef - map_origin;
         tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(local_ecef, map_origin), pose->pose.position);
+        pose->pose.position.z = 0;  // force z-axis to zero
 
         /* publish target */
         setpointg_pub.publish(pose);
