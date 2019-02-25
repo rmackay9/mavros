@@ -316,7 +316,7 @@ private:
                     pos_target_ecef.x(), pos_target_ecef.y(), pos_target_ecef.z());
         }
         catch (const std::exception& e) {
-            ROS_WARN_NAMED("setpoint: Caught exception: " << e.what() << std::endl);
+            ROS_WARN_STREAM("setpoint: Caught exception: " << e.what() << std::endl);
             return;
         }
 
@@ -326,7 +326,8 @@ private:
         pose->pose.orientation.w = 1;   // unit quaternion with no rotation
 
         /* convert ECEF target to ENU */
-        tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(pos_target_ecef - map_origin, map_origin), pose->pose.position);
+        const Eigen::Vector3d local_ecef = pos_target_ecef - map_origin;
+        tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(local_ecef, map_origin), pose->pose.position);
 
         /* publish target */
         setpointg_pub.publish(pose);
