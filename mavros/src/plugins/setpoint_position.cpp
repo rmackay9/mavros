@@ -308,31 +308,25 @@ private:
             ROS_WARN_NAMED("setpoint", "SetPositionTargetGlobal failed because no origin");
         }
 
-        // convert from ned offsets to enu offsets
-        //auto enu_position = ftf::transform_frame_ned_enu(Eigen::Vector3d(offset.x, offset.y, offset.z));
-
-        // convert lat/lon target to ECEF
+        /* convert lat/lon target to ECEF */
         Eigen::Vector3d pos_target_ecef {};  //!< local ECEF coordinates on map frame [m]
-        //auto pos_target_ecef = boost::make_shared<geographic_msgs::GeoPointStamped>();
         GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
         try {
             earth.Forward(position_target.lat_int / 1E7, position_target.lon_int / 1E7, position_target.alt / 1E3,
                     pos_target_ecef.x(), pos_target_ecef.y(), pos_target_ecef.z());
         }
         catch (const std::exception& e) {
-            ROS_INFO_STREAM("setpoint: Caught exception: " << e.what() << std::endl);
+            ROS_WARN_NAMED("setpoint: Caught exception: " << e.what() << std::endl);
+            return;
         }
 
-        /* convert position target to PoseStamped */
+        /* create position target PoseStamped message */
         auto pose = boost::make_shared<geometry_msgs::PoseStamped>();
         pose->header = m_uas->synchronized_header("map", position_target.time_boot_ms);
-        //pose->pose.position.x = pos_target_ecef->position.latitude - map_origin.x();
-        //pose->pose.position.y = pos_target_ecef->position.longitude - map_origin.y();
-        //pose->pose.position.z = pos_target_ecef->position.altitude - map_origin.z();
         pose->pose.orientation.w = 1;   // unit quaternion with no rotation
 
-        // compute the local coordinates in ENU
-        tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(pos_target_ecef, map_origin), pose->position);
+        /* convert ECEF target to ENU */
+        tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(pos_target_ecef - map_origin, map_origin), pose->pose.position);
 
         /* publish target */
         setpointg_pub.publish(pose);
