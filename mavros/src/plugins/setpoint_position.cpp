@@ -271,14 +271,14 @@ private:
 	 */
 	void gp_origin_cb(const geographic_msgs::GeoPointStamped::ConstPtr &msg)
 	{
-		map_origin = {msg->position.latitude, msg->position.longitude, msg->position.altitude};
+		ecef_origin = {msg->position.latitude, msg->position.longitude, msg->position.altitude};
         /**
-         * @brief Conversion from geodetic coordinates (LLA) to ECEF (Earth-Centered, Earth-Fixed)
+         * @brief Conversion from ECEF (Earth-Centered, Earth-Fixed) to geodetic coordinates (LLA)
          */
         GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
         try {
-            earth.Forward(map_origin.x(), map_origin.y(), map_origin.z(),
-                    ecef_origin.x(), ecef_origin.y(), ecef_origin.z());
+            earth.Reverse(ecef_origin.x(), ecef_origin.y(), ecef_origin.z(),
+                    map_origin.x(), map_origin.y(), map_origin.z());
         }
         catch (const std::exception& e) {
             ROS_WARN_STREAM("setpoint: Caught exception: " << e.what() << std::endl);
