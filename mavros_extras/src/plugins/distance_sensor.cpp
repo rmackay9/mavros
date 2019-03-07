@@ -201,9 +201,9 @@ private:
 
 		auto it = sensor_map.find(dist_sen.id);
 		if (it == sensor_map.end()) {
-			ROS_ERROR_NAMED("distance_sensor",
-						"DS: no mapping for sensor id: %d, type: %d, orientation: %d",
-						dist_sen.id, dist_sen.type, dist_sen.orientation);
+			//ROS_ERROR_NAMED("distance_sensor",
+			//			"DS: no mapping for sensor id: %d, type: %d, orientation: %d",
+			//			dist_sen.id, dist_sen.type, dist_sen.orientation);
 			return;
 		}
 
