@@ -117,7 +117,8 @@ private:
 	//sensor_msgs::NavSatFix current_gps_msg;
 	Eigen::Vector3d current_gps;		//!< geodetic coordinates LLA
 	Eigen::Vector3d current_local_pos;	//!< Current local position in ENU
-	Eigen::Vector3d map_origin {};  //!< origin of map frame [lla]
+	Eigen::Vector3d map_origin {};  //!< oigin of map frame [lla]
+	Eigen::Vector3d ecef_origin {}; //!< geocentric origin [m]
 	uint32_t old_gps_stamp = 0;		//!< old time gps time stamp in [ms], to check if new gps msg is received
 
 	std::string tf_frame_id;
@@ -271,6 +272,18 @@ private:
 	void gp_origin_cb(const geographic_msgs::GeoPointStamped::ConstPtr &msg)
 	{
 		map_origin = {msg->position.latitude, msg->position.longitude, msg->position.altitude};
+        /**
+         * @brief Conversion from geodetic coordinates (LLA) to ECEF (Earth-Centered, Earth-Fixed)
+         */
+        GeographicLib::Geocentric earth(GeographicLib::Constants::WGS84_a(), GeographicLib::Constants::WGS84_f());
+        try {
+            earth.Forward(map_origin.x(), map_origin.y(), map_origin.z(),
+                    ecef_origin.x(), ecef_origin.y(), ecef_origin.z());
+        }
+        catch (const std::exception& e) {
+            ROS_WARN_STREAM("setpoint: Caught exception: " << e.what() << std::endl);
+            return;
+        }
 		is_map_init = true;
 	}
 
@@ -320,7 +333,7 @@ private:
 		pose->pose.orientation.w = 1;   // unit quaternion with no rotation
 
 		/* convert ECEF target to ENU */
-		const Eigen::Vector3d local_ecef = pos_target_ecef - map_origin;
+		const Eigen::Vector3d local_ecef = pos_target_ecef - ecef_origin;
 		tf::pointEigenToMsg(ftf::transform_frame_ecef_enu(local_ecef, map_origin), pose->pose.position);
 		pose->pose.position.z = 0;  // force z-axis to zero
 
